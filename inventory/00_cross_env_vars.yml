@@ -1,0 +1,28 @@
+ansible_python_interpreter: /usr/bin/python
+
+corp: 'corp'
+server_managed_domain: 'svr.corp.services'
+managed_region: 'undefined'
+
+common_base_packages: [tcpdump, psmisc, rsync, curl, wget, uptimed, htop, sudo, sysstat, lsof, net-tools, iotop, ncdu, dstat, git, bind-utils, vim-enhanced, ntpdate, tmux, traceroute, nethogs, telnet, yum-plugin-versionlock, unzip, NetworkManager, strace, whois, nc, chrony, jq, bwm-ng, rpcbind]
+
+obsoleted_services: [firewalld, postfix]
+
+dns_local_cache:
+  enabled: no
+
+cron_service: 'crond'
+ssh_service: 'sshd'
+
+fluentd_input_auditd_enabled: false
+
+users:
+  ## sysadmin
+  hong.dam:
+    uid: 555
+    host: []
+    rhost: [any]
+  corp:
+    uid: 701
+    host: []
+    rhost: [any]
