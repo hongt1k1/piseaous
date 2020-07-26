@@ -1,0 +1,115 @@
+## hostname
+- name: set hostname
+  hostname:
+    name: '{{ inventory_hostname }}'
+  notify: restart rsyslog
+
+## base repo
+- name: install yum-utils, epel repo
+  yum:
+    name: ['yum-utils', 'epel-release']
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: install common base packages
+  yum:
+    name: "{{ common_base_packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+## upgrade to lastest packages
+- name: update to latest packages
+  yum: name=* state=latest update_cache=yes
+  when:
+    - ansible_os_family == "RedHat"
+    - is_upgrade_latest | default(False)
+
+- name: disable not used services
+  service: name={{ item }} state=stopped enabled=no
+  with_items: "{{ obsoleted_services }}"
+  ignore_errors: True
+
+## timezone
+- name: set timezone to Asia/Saigon
+  timezone:
+    name: Asia/Saigon
+  notify:
+    - restart cron
+
+## swap
+- name: ansible_swaptotal_mb
+  debug: var=ansible_swaptotal_mb
+
+- name: create swapfile
+  shell: |
+    dd bs=1MB count=1024 if=/dev/zero of=/swapfile
+    chmod 0600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+  when: ansible_swaptotal_mb < 1
+
+- name: add swapfile to fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: "^/swapfile"
+    line: "/swapfile none swap sw 0 0"
+  when: ansible_swaptotal_mb < 1
+
+- name: set swapiness
+  copy:
+    content: 'vm.swappiness = 10'
+    dest: /etc/sysctl.d/60-swappiness.conf
+    mode: 0644
+  notify: reload sysctl
+
+## sec
+- name: disable ssh password
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "PasswordAuthentication .*"
+    line: "PasswordAuthentication no"
+  notify: restart ssh
+
+- name: disable selinux
+  lineinfile:
+    dest: /etc/selinux/config
+    regexp: "^SELINUX="
+    line: "SELINUX=disabled"
+  notify: force selinux off
+
+- name: corp auditd
+  block:
+    - name: auditd logformat
+      lineinfile:
+        dest: /etc/audit/auditd.conf
+        regexp: ".*log_format.*"
+        line: "log_format = ENRICHED"
+      notify: restart auditd
+
+    - name: auditd rule file
+      template:
+        src: auditd/audit.rules.j2
+        dest: /etc/audit/rules.d/audit.rules
+      notify: restart auditd
+
+    - name: auditd ensure service is enabled
+      service: name=auditd state=started enabled=yes
+
+
+## networking
+- name: ensure NetworkManager is enabled
+  service: name=NetworkManager state=started enabled=yes
+
+- name: sshd - disable ipv6
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: ".*AddressFamily .*"
+    line: "AddressFamily inet"
+  notify: restart ssh
+
+## misc
+- name: ensure uptimed is enabled
+  service: name=uptimed state=started enabled=yes
+
+- name: ensure rpcbind is enabled
+  service: name=rpcbind state=started enabled=yes

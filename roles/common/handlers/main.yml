@@ -1,0 +1,36 @@
+- name: restart rsyslog
+  service: name=rsyslog state=restarted
+
+- name: restart cron
+  service: name='{{ cron_service }}' state=restarted
+
+- name: restart ssh
+  service: name='{{ ssh_service }}' state=restarted
+
+- name: restart chronyd
+  service: name=chronyd state=restarted
+
+- name: restart auditd
+  service: name=auditd state=restarted use=service
+
+- name: reload sysctl
+  shell: sysctl --system
+
+- name: reload NetworkManager
+  service: name=NetworkManager state=reloaded
+
+- name: restart NetworkManager
+  service: name=NetworkManager state=restarted
+
+- name: restart unbound
+  service: name=unbound state=restarted
+
+- name: reload unbound
+  shell: unbound-control reload
+
+- name: force selinux off
+  shell: setenforce 0
+
+- name: td-agent reminder
+  debug:
+    msg: ">> REMINDER: also run td-agent playbook as local td-agent is required for forwarding syslog log to central server"

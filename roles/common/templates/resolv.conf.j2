@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+options rotate timeout:1 retries:1
+
+nameserver {{ nameserver.primary }}
+nameserver {{ nameserver.secondary }}

@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+*.* @127.0.0.1:42185
+{# $ModLoad omuxsock
+$OMUxSockSocket /tmp/tdagent-bit-rsyslog.sock
+*.* :omuxsock: #}

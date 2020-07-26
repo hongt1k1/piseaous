@@ -1,0 +1,21 @@
+- name: install unbound
+  yum:
+    state: 'present'
+    name:
+      - unbound
+
+- name: apply config files
+  template:
+    src: 'dns-local-cache.conf.j2'
+    dest: '/etc/unbound/unbound.conf'
+  notify: reload unbound
+
+- name: start systemd service
+  service: name=unbound state=started enabled=yes
+
+# - name: add telegraf monitor plugin
+#   import_role:
+#     name: telegraf
+#     tasks_from: plugins
+#   vars:
+#     telegraf_plugins: [unbound]

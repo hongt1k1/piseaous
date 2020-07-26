@@ -1,0 +1,28 @@
+- name: limits - raise soft fd limits
+  lineinfile:
+    dest: /etc/security/limits.conf
+    regexp: "soft.*nofile"
+    line: "*  soft  nofile  65536"
+
+- name: limits - raise hard fd limits
+  lineinfile:
+    dest: /etc/security/limits.conf
+    regexp: "hard.*nofile"
+    line: "*  hard  nofile  1000000"
+
+- name: apply sysctl tuning
+  template:
+    src: sysctl.conf.j2
+    dest: /etc/sysctl.d/60-tiki-tuning.conf
+  notify: reload sysctl
+
+- name: apply nf_conntrack tuning
+  template:
+    src: nf_conntrack.conf.j2
+    dest: /etc/modprobe.d/nf_conntrack.conf
+
+- name: cronjob to apply sysctl after boot
+  cron:
+    name: apply sysctl after boot
+    special_time: reboot
+    job: /sbin/sysctl --system

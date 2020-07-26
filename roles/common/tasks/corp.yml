@@ -1,0 +1,29 @@
+# base dir
+- name: creates corp directory
+  file: path=/corp/tmp state=directory
+
+- name: creates corp logs directory
+  file: path=/corp/log state=directory mode=0777
+
+# private networking
+#- name: install TIKI repo
+#  yum:
+#    name: 'https://repo.corp.com.vn/centos/7/x86_64/corp-release-1.2.2.el7-1.x86_64.rpm'
+#    state: 'present'
+#  when: ansible_distribution == 'CentOS'
+
+#- name: update TIKI Release
+#  yum:
+#    name: corp-release
+#    state: 'latest'
+#  when:  ansible_distribution == 'CentOS'
+
+- name: config syslog forwarding
+  template:
+    src: rsyslog-graylog.conf.j2
+    dest: /etc/rsyslog.d/00-graylog.conf
+  notify:
+    - restart rsyslog
+      #  when:
+      #    - "'r-public-managed' not in group_names"
+      #    - "nameserver.primary != 'unmanaged'"

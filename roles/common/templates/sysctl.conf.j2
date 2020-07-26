@@ -1,0 +1,43 @@
+# {{ ansible_managed }}
+
+# Disable ipv6
+#net.ipv6.conf.all.disable_ipv6 = 1
+#net.ipv6.conf.default.disable_ipv6 = 1
+
+# Tune kernel for many connections
+# General gigabit tuning
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+
+# This gives the kernel more memory for TCP
+# which you need with many (100k+) open socket connections
+net.ipv4.tcp_mem = 50576 64768 98152
+
+# TCP
+net.ipv4.tcp_fin_timeout = 5
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_tw_recycle = 0
+net.ipv4.tcp_max_orphans = 262144
+net.ipv4.tcp_synack_retries = 2
+net.ipv4.tcp_syn_retries = 2
+
+# IP conntrack for masquerading
+#net.netfilter.nf_conntrack_max = 131072
+net.netfilter.nf_conntrack_max = 1000000
+
+# Backlog
+net.core.netdev_max_backlog = 262144
+net.core.somaxconn = 65535
+net.ipv4.tcp_max_syn_backlog = 262144
+net.ipv4.tcp_syncookies = 1
+
+# Increase system IP port limits to allow for more connections
+net.ipv4.ip_local_port_range = 15000 65000
+
+# Raise number of file descriptors
+fs.file-max = 9999999
+fs.nr_open = 9999999
+
+vm.max_map_count = 262144

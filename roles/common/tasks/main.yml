@@ -1,0 +1,9 @@
+#- include_tasks: dns_local_cache.yml
+#  when: (dns_local_cache.enabled|default(false)|bool == true)
+#  tags: dns_local_cache
+
+- import_tasks: corp.yml
+
+- import_tasks: base.yml
+
+- import_tasks: sysctl.yml

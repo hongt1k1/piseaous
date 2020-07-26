@@ -1,0 +1,63 @@
+server:
+  verbosity: 1
+  statistics-interval: 0
+  statistics-cumulative: no
+  extended-statistics: yes
+  interface: 0.0.0.0
+  port: 53
+  do-ip6: no
+  interface-automatic: yes
+
+  # https://www.unbound.net/documentation/howto_optimise.html
+  num-threads: 4
+  msg-cache-slabs: 4
+  rrset-cache-slabs: 4
+  infra-cache-slabs: 4
+  key-cache-slabs: 4
+  outgoing-range: 8192
+  num-queries-per-thread: 4096
+  rrset-cache-size: 1024m
+  msg-cache-size: 512m
+  so-rcvbuf: 8m
+  so-sndbuf: 8m
+
+  cache-min-ttl: 60
+  cache-max-ttl: 3600
+  cache-max-negative-ttl: 60
+
+  private-domain: "tiki.services"
+
+  unwanted-reply-threshold: 10000000
+  prefetch: yes
+
+  access-control: 127.0.0.0/8 allow
+  access-control: 192.168.0.0/16 allow
+  access-control: 172.16.0.0/12 allow
+  access-control: 10.0.0.0/8 allow
+
+  access-control: 0.0.0.0/0 refuse
+
+
+forward-zone:
+  name: "tiki.services."
+  {% if nameserver.primary == 'unmanaged' -%}
+  forward-addr: 169.254.169.254
+  {% else -%}
+  forward-addr: {{ nameserver.primary }}
+  forward-addr: {{ nameserver.secondary }}
+  {% endif %}
+
+
+forward-zone:
+  name: "."
+  forward-addr: 8.8.8.8
+  forward-addr: 8.8.4.4
+  forward-addr: 208.67.222.222
+  forward-addr: 208.67.220.220
+
+remote-control:
+  control-enable: yes
+  server-key-file: "/etc/unbound/unbound_server.key"
+  server-cert-file: "/etc/unbound/unbound_server.pem"
+  control-key-file: "/etc/unbound/unbound_control.key"
+  control-cert-file: "/etc/unbound/unbound_control.pem"

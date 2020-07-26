@@ -1,0 +1,9 @@
+{% if nameserver.primary == 'unmanaged' -%}
+[main]
+dns=yes
+ignore-auto-dns=false
+{% else -%}
+[main]
+dns=none
+ignore-auto-dns=true
+{% endif %}
