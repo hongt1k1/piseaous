@@ -1,9 +1,15 @@
 # base dir
-- name: creates corp directory
+- name: create corp directory
   file: path=/corp/tmp state=directory
 
-- name: creates corp logs directory
+- name: create corp logs directory
   file: path=/corp/log state=directory mode=0777
+
+- name: create owner libs dir
+  file: 
+    path: /opt/pink_libs
+    state: directory
+    mode: 0700
 
 # private networking
 #- name: install TIKI repo

@@ -1,0 +1,5 @@
+---
+  - name: Provision common settings for all server
+    hosts: uat-1
+    roles:
+      - { role: common, tags: common }

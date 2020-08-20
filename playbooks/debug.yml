@@ -1,0 +1,5 @@
+---
+  - name: debug some variable
+    hosts: uat-1
+    roles: 
+      - { role: print_vars, tags: print_vars }
