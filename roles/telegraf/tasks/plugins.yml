@@ -1,0 +1,7 @@
+- name: apply input plugins config
+  template:
+    src: 'input/{{ item }}.conf.j2'
+    dest: '/tiki/telegraf/telegraf.d/input.{{ item }}.conf'
+  with_items: '{{ telegraf_plugins }}'
+  when: telegraf_plugins | length > 0
+  notify: restart telegraf

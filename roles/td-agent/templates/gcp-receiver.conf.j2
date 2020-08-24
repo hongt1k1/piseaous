@@ -1,0 +1,407 @@
+
+<system>
+ log_level debug
+</system>
+
+<source>
+  @type syslog
+  port 42185
+  tag  rsyslog
+</source>
+
+<source>
+  @type forward
+  port 24224
+</source>
+
+<source>
+  @type monitor_agent
+  bind 0.0.0.0
+  port 24220
+</source>
+
+# expose metrics in prometheus format
+<source>
+  @type prometheus
+  bind 0.0.0.0
+  port 24231
+  metrics_path /metrics
+</source>
+<source>
+  @type prometheus_output_monitor
+  interval 10
+  <labels>
+    hostname ${hostname}
+  </labels>
+</source>
+
+<filter **>
+  @type record_modifier
+  char_encoding utf-8
+  #
+  # [warn]: failed to flush the buffer. error_class="JSON::GeneratorError"
+  # error="source sequence is illegal/malformed utf-8" plugin_id="object:3ff3e5fd61a0"
+  #
+  # In char_encoding from:to case, it replaces invalid character with safe character.
+  #
+  char_encoding utf-8:utf-8
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+
+#-----------------
+# Discard unmanaged logging
+#--------------------------------
+
+<label @FLUENT_LOG>
+  <match fluent.*>
+    @type null
+  </match>
+</label>
+
+<match kubernetes.var.log.containers.**>
+  @type null
+</match>
+
+<match soc.audit>
+    @type null
+</match>
+
+<match soc.file-integrity>
+    @type null
+</match>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_review_review/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_executor_sherlock-zoom/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_executor_sherlock-observer/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_clickhouse_clickhouse/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_pegasus-query_pegasus-query-/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_alerta_alerta-/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_kong-gw-ver-2_kong-gw-ver-2-/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_graylog-server_graylog-/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_trackity_trackity/
+  </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_druid-(historical|coordinator)/
+  </exclude>
+</filter>
+
+#-----------------
+# retag containers stdout logs
+#--------------------------------
+<match docker.containers>
+  @type rewrite_tag_filter
+
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_nginx-ingress.*/
+    tag       k8s.ingress.nginx
+  </rule>
+
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_istio-proxy_.*/
+    tag       k8s.istio.proxy
+  </rule>
+
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_(autocomplete_autocomplete|thanos_thanos|j-personalization_j-personalization)-.*/
+    tag       k8s.discovery.containers
+  </rule>
+
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_(ad-adman_ad-adman)-.*/
+    tag       k8s.advertising.adman.containers
+  </rule>
+
+  <rule>
+    key       container_name
+    pattern   /.+/
+    tag       docker.catchall
+  </rule>
+
+</match>
+
+#-----------------
+# route discovery services log to log files
+#--------------------------------
+<match k8s.discovery.containers>
+  @type copy
+  <store ignore_error>
+    @type relabel
+    @label @TOGRAYLOG
+  </store>
+  <store ignore_error>
+    @type relabel
+    @label @TODISCOVERYBASTION
+  </store>
+</match>
+
+
+#-----------------
+# k8s nginx ingress log
+#--------------------------------
+<filter k8s.ingress.nginx>
+  @type record_transformer
+  renew_record  true
+  keep_keys     time,fluentd_event_source
+  <record>
+    message   ${record["log"]}
+  </record>
+</filter>
+
+#-----------------
+# nginx access log
+#--------------------------------
+
+# https://docs.fluentd.org/output/copy#ignore_error-argument
+
+<match k8s.ingress.nginx>
+  @type copy
+  <store ignore_error>
+    @type relabel
+    @label @TOGRAYLOG
+  </store>
+  <store ignore_error>
+    @type relabel
+    @label @TOBIGQUERY
+  </store>
+</match>
+
+<match nginx.access.**>
+  @type copy
+  <store ignore_error>
+    @type relabel
+    @label @TOGRAYLOG
+  </store>
+  <store ignore_error>
+    @type relabel
+    @label @TOBIGQUERY
+  </store>
+</match>
+
+#-----------------
+# Parse Istio Proxy Http Log
+#--------------------------------
+<filter k8s.istio.proxy>
+  @type parser
+  key_name log
+  reserve_data true
+  <parse>
+    @type regexp
+    expression /^\[(?<time>[^\]]*)\] "(?<method>\S+)(?: +(?<path>(?:[^\"]|\\.)*?)(?: +\S*)?) (?<protocol>\S+)?" (?<response_code>\S+) (?<response_flags>\S+) (?<response_code_detail>\S+) (?<mixer_status>\S+) (?<bytes_received>\S+) (?<bytes_sent>\S+) (?<duration>\S+) (?<x_envoy_upstream_service_time>\S+) "(?<x_forwarded_for>[^\"]*)" "(?<user_agent>[^\"]*)" "(?<x_request_id>[^\"]*)" "(?<authority>[^\"]*)" "(?<upstream_host>[^\"]*)" (?<upstream_cluster>[^\"]*) (?<upstream_local_address>[^\"]*) (?<downstream_remote_address>[^\"]*) (?<downstream_local_address>[^\"]*) (?<req>[^\"]*) (?<filter_state>[^\"]*)?$/
+  </parse>
+</filter>
+
+
+#-----------------
+# Parse Advertising Adman Log
+#--------------------------------
+<match k8s.advertising.adman.containers>
+  @type rewrite_tag_filter
+
+  <rule>
+    key       log
+    pattern   /"location":"transport\.endpoint"/
+    tag       k8s.advertising.adman.operationInfo
+  </rule>
+
+  <rule>
+    key       container_name
+    pattern   /.+/
+    tag       k8s.advertising.adman.default
+  </rule>
+
+</match>
+
+<filter k8s.advertising.adman.operationInfo>
+  @type parser
+  key_name log
+  reserve_data true
+  reserve_time true
+  <parse>
+    @type json
+  </parse>
+</filter>
+
+#-----------------
+# Talaria log
+#--------------------------------
+
+<match talaria.**>
+  @type copy
+  <store ignore_error>
+    @type relabel
+    @label @TOBIGQUERY
+  </store>
+  <store ignore_error>
+    @type relabel
+    @label @TOGRAYLOG
+  </store>
+</match>
+
+#-----------------
+# Catch all
+#--------------------------------
+
+<match **>
+  @type relabel
+  @label @TOGRAYLOG
+</match>
+
+#--------
+# Forward to graylog
+#---------------------
+<label @TOGRAYLOG>
+  <match **>
+    @type gelf
+    host 10.8.124.33
+    port 12201
+    protocol tcp
+    <buffer>
+      @type             file
+      path              /tiki/td-agent/buffer/to-graylog-forwarder.*.buffer
+      flush_at_shutdown true
+      compress          gzip
+      flush_interval    5s
+      flush_thread_count 8
+    </buffer>
+    <secondary>
+      @type secondary_file
+      directory /tiki/td-agent/error
+      basename graylog-forwarder.${chunk_id}
+      compress gzip
+    </secondary>
+  </match>
+</label>
+
+
+#--------
+# Forward to bigquery
+#----------------------
+<label @TOBIGQUERY>
+  <match **>
+    @type forward
+    <server>
+      host vm-prod-logging-fluentd-bigquery-1.c.tiki-prod-logging-dd6c.internal
+      port 24224
+    </server>
+    <security>
+      self_hostname {{ inventory_hostname }}
+      shared_key cooph4bah1eequ6shughie8woh0ahChi
+    </security>
+    <buffer>
+      @type               file
+      path                /tiki/td-agent/buffer/to-bigquery-forwarder.*.buffer
+      flush_at_shutdown   true
+      compress            gzip
+      flush_interval      1m
+    </buffer>
+    <secondary>
+      @type secondary_file
+      directory /tiki/td-agent/error
+      basename bigquery-forwarder.${chunk_id}
+      compress gzip
+    </secondary>
+  </match>
+</label>
+
+
+#--------
+# forward to discovery team bastion
+#----------------------
+<label @TODISCOVERYBASTION>
+  <match **>
+    @type forward
+    <server>
+      host vm-prod-discovery-bastion-1.c.tiki-prod-discovery-36df.internal
+      port 24224
+    </server>
+    <security>
+      self_hostname {{ inventory_hostname }}
+      shared_key eeyeezeethingea0Ahnie0Op3at0jua3
+    </security>
+    <buffer>
+      @type               file
+      path                /tiki/td-agent/buffer/to-discovery-bastion.*.buffer
+      flush_at_shutdown   true
+      compress            gzip
+      flush_interval      1m
+    </buffer>
+    <secondary>
+      @type secondary_file
+      directory /tiki/td-agent/error
+      basename discovery-bastion.${chunk_id}
+      compress gzip
+    </secondary>
+  </match>
+</label>

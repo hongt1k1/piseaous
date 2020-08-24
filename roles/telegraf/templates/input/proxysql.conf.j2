@@ -1,0 +1,11 @@
+[[inputs.procstat]]
+  exe = "proxysql"
+
+[[inputs.exec]]
+  # the command to run
+  command = "/tiki/scripts/proxysql_stats.py"
+
+  ## Timeout for each command to complete.
+  timeout = "5s"
+
+  data_format = "influx"

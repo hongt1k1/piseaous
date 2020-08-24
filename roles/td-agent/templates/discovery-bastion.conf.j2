@@ -1,0 +1,63 @@
+# {{ ansible_managed }}
+<system>
+ log_level debug
+</system>
+
+<source>
+  @type forward
+  @log_level info
+  port 24224
+  <security>
+    self_hostname {{ inventory_hostname }}
+    shared_key eeyeezeethingea0Ahnie0Op3at0jua3
+  </security>
+</source>
+
+# expose metrics in prometheus format
+<source>
+  @type prometheus
+  bind 0.0.0.0
+  port 24231
+  metrics_path /metrics
+</source>
+<source>
+  @type prometheus_output_monitor
+  interval 10
+  <labels>
+    hostname ${hostname}
+  </labels>
+</source>
+
+<filter **>
+  @type record_modifier
+  char_encoding utf-8
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+
+# -------
+# write log to file
+# --------------------
+<match k8s.discovery.containers>
+  @type rewrite_tag_filter
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_([a-z0-9\-]*)_(.*)-(.*)/
+    tag      app.$1
+  </rule>
+</match>
+
+
+<match app.**>
+  @type file
+  path /log/${tag[1]}/%Y%m%d/%H%M
+  <buffer tag, time>
+    timekey 5m
+    timekey_wait 1m
+    flush_interval 1m
+  </buffer>
+  compress gzip
+  append true
+</match>

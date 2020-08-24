@@ -1,0 +1,59 @@
+# {{ ansible_managed }}
+<source>
+  @type syslog
+  port 42185
+  tag  rsyslog
+</source>
+
+<source>
+  @type forward
+  port 24224
+</source>
+
+{% if auditd_log.stat.exists == True and fluentd_input_auditd_enabled %}
+@include input_auditd.conf
+
+{% endif -%}
+
+{% if nginx_access_log.stat.exists == True %}
+@include input_nginx.conf
+
+{% endif -%}
+
+{% if (docker_logging_driver.stdout | default('0')) == 'json-file' %}
+@include input_docker.conf
+
+{% endif -%}
+
+{% if elasticsearch_bin.stat.exists == True %}
+@include input_es.conf
+
+{% endif -%}
+
+
+{% if kafka_bin.stat.exists == True %}
+@include input_kafka.conf
+
+{% endif -%}
+
+<filter **>
+  @type record_transformer
+  enable_ruby
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+<match **>
+  @type forward
+  buffer_type file
+  buffer_path /tiki/td-agent/buffer/catchall.*.buffer
+  buffer_chunk_limit 10m
+  buffer_queue_limit 1000
+  flush_interval 5s
+  num_threads 4
+  <server>
+    host {{ fluentd_logging_endpoint }}
+    port 24224
+  </server>
+</match>

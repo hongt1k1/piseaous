@@ -1,0 +1,28 @@
+# {{ ansible_managed }}
+
+[supervisord]
+logfile=/tiki/log/_supervisord.log
+pidfile=/var/run/supervisord.pid
+childlogdir=/tiki/log/
+logfile_maxbytes=10MB
+logfile_backups=5
+loglevel=info
+minfds=1048576               ; will limit this later...
+
+[unix_http_server]
+file=/var/run/supervisor.sock
+chmod=0700
+
+# prometheus node_exporter support
+[inet_http_server]
+port = 127.0.0.1:59001
+
+; the below section must remain in the config file for RPC (supervisorctl/web interface) to work
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=unix:///var/run//supervisor.sock
+
+[include]
+files = /etc/supervisord.d/*.srv

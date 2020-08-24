@@ -1,0 +1,8 @@
+# Query given DNS server and gives statistics
+[[inputs.dns_query]]
+  servers = ["10.20.40.21", "10.20.40.31", "10.20.60.75", "10.20.60.81"]
+  domains = ["browser.tiki.services", "tiki.vn", "google.com"]
+  ## Posible values: A, AAAA, CNAME, MX, NS, PTR, TXT, SOA, SPF, SRV.
+  record_type = "A"
+  port = 53
+  timeout = 1

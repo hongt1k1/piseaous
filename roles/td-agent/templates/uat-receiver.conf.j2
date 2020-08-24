@@ -1,0 +1,120 @@
+# {{ ansible_managed }}
+<system>
+ log_level debug
+</system>
+
+<source>
+  @type syslog
+  port 42185
+  tag rsyslog
+</source>
+
+<source>
+  @type forward
+  port 24224
+</source>
+
+<source>
+  @type monitor_agent
+  bind 0.0.0.0
+  port 24220
+</source>
+
+<filter **>
+  @type record_modifier
+  char_encoding utf-8
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+# discard access log from nginx ingress controller
+# cause we are using nginx-ingress 0.10.2
+# TODO: upgrade to nginx-ingress 0.12.0 and use annotation instead
+<filter docker.containers>
+  @type grep
+   <exclude>
+     key container_name
+     pattern /^\/k8s_nginx-ingress-controller|^\/k8s_istio-proxy|^\/k8s_fluent-bit/
+   </exclude>
+</filter>
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key fluentd_event_source
+    pattern /^tmp-loadtest/
+  </exclude>
+</filter>
+
+{# <match soc.audit> #}
+{#     @type http #}
+{#     endpoint http://10.20.43.55:8080/command #}
+{#     open_timeout 2 #}
+{#     <buffer> #}
+{#       @type           file #}
+{#       path            /tiki/td-agent/buffer/soc.audit.*.buffer #}
+{#       compress        gzip #}
+{#       flush_interval  5s #}
+{#       flush_at_shutdown true #}
+{#     </buffer> #}
+{# </match> #}
+
+{# <match soc.file-integrity> #}
+{#     @type http #}
+{#     endpoint http://10.20.43.55:8080/file #}
+{#     open_timeout 2 #}
+{#     <buffer> #}
+{#       @type           file #}
+{#       path            /tiki/td-agent/buffer/soc.file-integrity.*.buffer #}
+{#       compress        gzip #}
+{#       flush_interval  5s #}
+{#       flush_at_shutdown true #}
+{#     </buffer> #}
+{# </match> #}
+
+#------------------------
+# Rancher Auditlog filter
+#----------------------------------
+
+<match docker.containers>
+  @type rewrite_tag_filter
+  capitalize_regex_backreference yes
+  
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_rancher-audit-log.*/
+    invert    true
+    tag       docker.catchall
+  </rule>
+  
+  <rule>
+    key       container_name
+    pattern   /^\/k8s_rancher-audit-log.*/
+    tag       rancher.auditlog
+  </rule>
+
+</match>
+
+{% if (td_agent.kafka.enabled | default('0')) == '1' %}
+@include output_kafka_*.conf
+{% endif -%}
+
+
+{% if (td_agent.sentry_enabled | default('0')) == '1' %}
+@include output_sentry_*.conf
+{% endif -%}
+
+
+<match **>
+  @type gelf
+  host {{ graylog_logging_endpoint }}
+  port 12201
+  protocol tcp
+  buffer_type file
+  buffer_path /tiki/td-agent/buffer/catchall.*.buffer
+  buffer_chunk_limit 10m
+  buffer_queue_limit 4000
+  flush_interval 5s
+  num_threads 16
+</match>

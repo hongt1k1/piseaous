@@ -1,0 +1,2 @@
+- name: restart td-agent
+  shell: /usr/bin/supervisorctl restart td-agent

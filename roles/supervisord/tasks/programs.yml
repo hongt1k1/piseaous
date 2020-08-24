@@ -1,0 +1,21 @@
+# task to config supervisord programs
+
+- name: add supervisord program config
+  template:
+    src: program.srv.j2
+    dest: /etc/supervisord.d/{{ item.key }}.srv
+  with_dict: '{{ s_programs }}'
+
+- name: ensure program is present
+  supervisorctl:
+    name: '{{ item.key }}'
+    state: present
+    config: /etc/supervisord.conf
+  with_dict: '{{ s_programs }}'
+
+- name: ensure program is started
+  supervisorctl:
+    name: '{{ item.key }}'
+    state: started
+    config: /etc/supervisord.conf
+  with_dict: '{{ s_programs }}'

@@ -1,0 +1,49 @@
+---
+- name: add users tiki
+  user: name=tiki uid=701 shell=/bin/bash
+
+- name: check if telegraf already installed
+  stat: path=/tiki/telegraf/telegraf
+  register: telegraf_bin
+
+- name: install telegraf
+  block:
+    - name: create base telegraf path
+      file: path={{ item }} state=directory owner=tiki group=tiki
+      with_items: [/tiki/telegraf/]
+
+    - name: download telegraf release
+      get_url:
+        url: '{{ telegraf.pkg.url }}'
+        dest: /usr/local/src/
+        checksum: '{{ telegraf.pkg.checksum }}'
+      register: telegraf_src
+
+    - name: extract telegraf.tar
+      unarchive:
+        src: '{{ telegraf_src.dest }}'
+        remote_src: yes
+        dest: /tiki/telegraf
+        extra_opts: ['--strip', '4']
+        exclude: ['lib', 'log', 'logrotate.d']
+
+  when: telegraf_bin.stat.exists == False
+
+- name: apply config files
+  template:
+    src: 'telegraf.conf.j2'
+    dest: '/tiki/telegraf/telegraf.conf'
+  notify: restart telegraf
+
+- name: apply input plugins config
+  template:
+    src: 'input/{{ item }}.conf.j2'
+    dest: '/tiki/telegraf/telegraf.d/input.{{ item }}.conf'
+  with_items: '{{ telegraf_input_plugins }}'
+  when: telegraf_input_plugins | length > 0
+  notify: restart telegraf
+
+- name: add supervisord program config
+  import_role:
+    name: supervisord
+    tasks_from: programs

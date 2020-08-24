@@ -1,0 +1,6 @@
+ # A plugin to collect stats from Unbound - a validating, recursive, and caching DNS resolver
+ [[inputs.unbound]]
+   binary = "/usr/sbin/unbound-control"
+   timeout = "1s"
+   ## Use the builtin fielddrop/fieldpass telegraf filters in order to keep only specific fields
+   fieldpass = ["total_*", "num_*","time_up", "mem_*"]

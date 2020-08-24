@@ -1,0 +1,4 @@
+# Read metrics from one or many MongoDB servers
+[[inputs.mongodb]]
+  servers = ["mongodb://telegraf:Hahb6ceirapo7haDeix6vuhu@{{ ansible_default_ipv4['address'] }}:27017/?authSource=admin"]
+  gather_perdb_stats = false

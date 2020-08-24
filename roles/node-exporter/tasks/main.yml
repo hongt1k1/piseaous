@@ -1,0 +1,34 @@
+
+- name: check if node-exporter already installed
+  stat: path=/tiki/node-exporter/bin/node_exporter
+  register: node_exporter_bin
+
+- name: install
+  block:
+
+    - name: prepare node-exporter path
+      file: path={{ item }} state=directory
+      with_items:
+        - /tiki/node-exporter/bin
+
+    - name: download node-exporter release
+      get_url:
+        url: '{{ node_exporter.pkg.url }}'
+        dest: /usr/local/src/
+        checksum: '{{ node_exporter.pkg.checksum }}'
+      register: node_exporter_src
+
+    - name: extract node-exporter.tar
+      unarchive:
+        src: '{{ node_exporter_src.dest }}'
+        remote_src: yes
+        dest: /tiki/node-exporter/bin
+        extra_opts: ['--strip', '1']
+        exclude: ['LICENSE', 'NOTICE']
+
+  when: node_exporter_bin.stat.exists == False
+
+- name: add supervisord program config
+  import_role:
+    name: supervisord
+    tasks_from: programs

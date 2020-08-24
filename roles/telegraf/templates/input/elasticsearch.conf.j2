@@ -1,0 +1,5 @@
+[[inputs.elasticsearch]]
+  servers = ["http://{{ ansible_default_ipv4['address'] }}:9200"]
+  http_timeout = "5s"
+  local = true
+  cluster_health = true

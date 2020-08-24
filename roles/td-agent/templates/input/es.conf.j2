@@ -1,0 +1,7 @@
+<source>
+  @type tail
+  format none
+  path /tiki/log/elasticsearch/{{ es_cluster.json.cluster_name }}.log
+  pos_file /tiki/td-agent/{{ es_cluster.json.cluster_name }}.log.pos
+  tag elasticsearch.{{ es_cluster.json.cluster_name }}
+</source>

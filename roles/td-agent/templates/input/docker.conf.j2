@@ -1,0 +1,23 @@
+<source>
+  @type tail
+  path /tiki/docker/data/containers/*/*-json.log
+  pos_file /tiki/td-agent/docker-json.pos
+  time_format %Y-%m-%dT%H:%M:%S.%L%z
+  tag docker.*
+  format json
+</source>
+
+# Using filter to add container IDs to each event
+<filter docker.**.containers.*.*.log>
+  @type record_modifier
+  <record>
+    container_id ${tag_parts[5]}
+    container_name ${id = tag_parts[5]; JSON.parse(IO.read("/tiki/docker/data/containers/#{id}/config.v2.json"))['Name']}
+    container_img ${id = tag_parts[5]; JSON.parse(IO.read("/tiki/docker/data/containers/#{id}/config.v2.json"))['Config']['Image']}
+  </record>
+</filter>
+
+<match docker.**.containers.*.*.log>
+  @type record_modifier
+  tag docker.containers
+</match>

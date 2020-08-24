@@ -1,0 +1,21 @@
+td_agent:
+  role: "forwarder"
+  bigquery:
+    enabled: "0"
+  kafka:
+    enabled: "0"
+
+s_programs:
+  td-agent:
+    command: "/opt/td-agent/embedded/bin/fluentd --no-supervisor"
+    numprocs: 1
+    directory: "/tiki/td-agent"
+    autostart: "true"
+    autorestart: "true"
+    user: "root"
+    stdout_logfile: "/tiki/log/td-agent.stdout.log"
+    stderr_logfile: "/tiki/log/td-agent.stderr.log"
+    environment: "LD_PRELOAD=/opt/td-agent/embedded/lib/libjemalloc.so,GEM_HOME=/opt/td-agent/embedded/lib/ruby/gems/2.4.0/,GEM_PATH=/opt/td-agent/embedded/lib/ruby/gems/2.4.0/,FLUENT_CONF=/tiki/td-agent/td-agent.conf,FLUENT_PLUGIN=/etc/td-agent/plugin,FLUENT_SOCKET=/var/run/td-agent/td-agent.sock"
+
+tdagent_bigquery_serviceaccount: "SECRET"
+tdagent_tikigap_bigquery_serviceaccount: "SECRET"

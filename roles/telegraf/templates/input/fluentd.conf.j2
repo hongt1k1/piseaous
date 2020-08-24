@@ -1,0 +1,8 @@
+# Read metrics exposed by fluentd in_monitor plugin
+[[inputs.fluentd]]
+  endpoint = "http://localhost:24220/api/plugins.json"
+  ## Define which plugins have to be excluded (based on "type" field - e.g. monitor_agent)
+  exclude = [
+    "monitor_agent",
+    "dummy",
+  ]

@@ -1,0 +1,143 @@
+## POC
+
+[[inputs.http_response]]
+  address = "http://notfound.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://alwaysfail.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+## BOP
+
+[[inputs.http_response]]
+  address = "http://catalog.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://deal.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://directory.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://marketplace.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://order.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://qna.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://rma.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://seller.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://seller-report.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://ticket.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+## TALA
+
+[[inputs.http_response]]
+  address = "http://browser.tiki.services/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://review.tiki.services/v2/"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://installment.tiki.services/installment_plans"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://recentlyviewed.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://cart.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://customer.tiki.services"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://abtest.tiki.services/api/v1/experiments"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://recommendation.tiki.services/v2/recommendation/healthcheck"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "https://analytics.tiki.vn/"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://backend.analytics.tiki.services/api/nlp"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true
+
+[[inputs.http_response]]
+  address = "http://10.20.40.20:8132/v1/"
+  response_timeout = "5s"
+  method = "GET"
+  follow_redirects = true

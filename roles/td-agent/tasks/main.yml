@@ -1,0 +1,233 @@
+- name: check if tdagent already installed
+  stat: path=/sbin/td-agent
+  register: tdagent_bin
+
+- name: prepare tdagent path /tiki/tdagent
+  file: path={{ item }} state=directory owner=tiki group=tiki
+  with_items:
+    - /tiki/td-agent/buffer
+    - /tiki/td-agent/error
+
+- name: install tdagent
+  block:
+    - name: add yum repository
+      yum_repository:
+        name: TD_AGENT
+        description: td-agent
+        baseurl: http://packages.treasuredata.com/3/redhat/$releasever/$basearch
+        gpgcheck: yes
+        gpgkey: https://packages.treasuredata.com/GPG-KEY-td-agent
+
+    - name: install tdagent package
+      yum:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - td-agent
+
+  when: tdagent_bin.stat.exists == False
+
+- name: disable systemd service
+  service: name=td-agent state=stopped enabled=no
+
+- name: download gelf plugin
+  get_url:
+    url: 'https://raw.githubusercontent.com/emsearcy/fluent-plugin-gelf/master/lib/fluent/plugin/out_gelf.rb'
+    dest: /etc/td-agent/plugin
+
+- name: install plugin
+  shell: |
+    /usr/sbin/td-agent-gem install {{ item }}
+  args:
+    chdir: /etc/td-agent/plugin
+    executable: /bin/bash
+  with_items:
+    - fluent-plugin-record-modifier
+    - fluent-plugin-filter-parse-audit-log
+    - fluent-plugin-sentry
+    - gelf
+    - fluent-plugin-prometheus
+    - fluent-plugin-kafka
+
+- name: remove plugin
+  shell: |
+      /usr/sbin/td-agent-gem uninstall {{ item }}
+  args:
+    chdir: /etc/td-agent/plugin
+    executable: /bin/bash
+  with_items:
+    - fluent-plugin-http
+
+- debug: var=td_agent
+
+
+- name: apply input auditd
+  block:
+    - name: check if auditd log exist
+      stat: path=/var/log/audit/audit.log
+      register: auditd_log
+
+    - name: apply input tail_auditd
+      template: >
+        src=input/{{ item }}.conf.j2 dest=/tiki/td-agent/input_{{ item }}.conf
+        mode=0640 owner=tiki group=tiki
+      with_items:
+        - auditd
+      notify: restart td-agent
+      when:
+        - auditd_log.stat.exists == True
+
+
+- name : apply output sentry
+  block:
+    - name: create sentry output matching config
+      template:
+        src: 'output/sentry.conf.j2'
+        dest: '/tiki/td-agent/output_sentry_{{ item.key }}.conf'
+      with_dict: '{{ td_agent.sentry }}'
+      register: td_agent_sentry_config
+      notify: restart td-agent
+  when:
+    - td_agent.sentry is defined
+
+- name : apply output kafka
+  block:
+    - name: create kafka output matching config
+      template:
+        src: 'output/kafka.conf.j2'
+        dest: '/tiki/td-agent/output_kafka_rancher.conf'
+      with_dict: '{{ td_agent.kafka }}'
+      register: td_agent_kafka_config
+      notify: restart td-agent
+  when:
+    - td_agent.kafka.enabled == '1'
+
+- name: apply output talaria - bigquery
+  block:
+    - name: install bigquery plugin
+      shell: /usr/sbin/td-agent-gem install fluent-plugin-bigquery
+      args:
+        chdir: /etc/td-agent/plugin
+        executable: /bin/bash
+
+    - name: add bigquery service account
+      copy:
+        content: "{{ tdagent_bigquery_serviceaccount }}"
+        dest: /tiki/td-agent/.ggsa-fluentd.json
+        mode: 0640
+
+    - name: add tiki-gap bigquery service account
+      copy:
+        content: "{{ tdagent_tikigap_bigquery_serviceaccount }}"
+        dest: /tiki/td-agent/.tikivn-47337a40c36b.json
+        mode: 0640
+
+  when:
+    - td_agent.bigquery is defined
+    - td_agent.bigquery.enabled == "1"
+
+
+- name: check if nginx access_log exist
+  stat: path=/var/log/nginx/access.log
+  register: nginx_access_log
+
+- name: apply input tail_nginx
+  template: >
+    src=input/{{ item }}.conf.j2 dest=/tiki/td-agent/input_{{ item }}.conf
+    mode=0640 owner=tiki group=tiki
+  with_items:
+    - nginx
+  notify: restart td-agent
+  when:
+    - nginx_access_log.stat.exists == True
+
+- name: check if elasticsearch already installed
+  stat: path=/tiki/elasticsearch/bin/elasticsearch
+  register: elasticsearch_bin
+
+- name: apply input tail_es
+  block:
+    - name: get es cluster name
+      uri:
+        url: 'http://{{ ansible_default_ipv4.address }}:9200'
+        method: GET
+        return_contents: yes
+      register: es_cluster
+
+    - debug: var=es_cluster
+    - debug: var=es_cluster.json.cluster_name
+
+    - name: apply config template
+      template: >
+        src=input/{{ item }}.conf.j2 dest=/tiki/td-agent/input_{{ item }}.conf
+        mode=0640 owner=tiki group=tiki
+      with_items:
+        - es
+      notify: restart td-agent
+
+  when:
+    - elasticsearch_bin.stat.exists == True
+
+- name: check if kafka already installed
+  stat: path=/tiki/kafka/bin/kafka-server-start.sh
+  register: kafka_bin
+
+- name: apply input kafka
+  block:
+    - name: apply config template
+      template: >
+        src=input/{{ item }}.conf.j2 dest=/tiki/td-agent/input_{{ item }}.conf
+        mode=0640 owner=tiki group=tiki
+      with_items:
+        - kafka
+      notify: restart td-agent
+
+  when:
+    - kafka_bin.stat.exists == True
+
+- name: check if docker exist
+  stat: path=/usr/bin/docker
+  register: docker_bin
+
+- name: apply input tail_docker
+  block:
+    - name: detect docker logging driver
+      shell: 'docker info -f "{% raw %}{{.LoggingDriver}}{% endraw %}"'
+      args:
+        executable: /bin/bash
+      register: docker_logging_driver
+
+    - name: apply input tail_docker
+      template: >
+        src=input/{{ item }}.conf.j2 dest=/tiki/td-agent/input_{{ item }}.conf
+        mode=0640 owner=tiki group=tiki
+      with_items:
+        - docker
+      notify: restart td-agent
+      when:
+        - docker_logging_driver.stdout == 'json-file'
+
+  when: docker_bin.stat.exists == True
+
+
+- name: apply tdagent configs
+  template: >
+    src={{ item }} dest=/tiki/td-agent/td-agent.conf
+    mode=0640 owner=tiki group=tiki
+  with_items:
+    - "{{ td_agent.role }}.conf.j2"
+  notify: restart td-agent
+
+- name: add supervisord program config
+  import_role:
+    name: supervisord
+    tasks_from: programs
+
+- name: add telegraf monitor plugin
+  import_role:
+    name: telegraf
+    tasks_from: plugins
+  vars:
+    telegraf_plugins: [fluentd]
+  when:
+    (td_agent.role == "receiver") or (td_agent.role == "gcp-receiver")

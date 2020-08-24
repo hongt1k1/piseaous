@@ -1,0 +1,81 @@
+- name: add profile.d config
+  template:
+    src: profile.d/tiki.sh
+    dest: /etc/profile.d/tiki.sh
+
+- name: bash profile for root
+  file: src=/etc/profile.d/tiki.sh dest=/root/.bashrc state=link force=yes
+
+- name: add groups
+  group:
+    name: "{{ item.key }}"
+    gid: "{{ item.value.uid }}"
+  with_dict: "{{ users }}"
+  ignore_errors: True
+  when: ('any' in item.value.rhost ) or
+        ('any' in item.value.host ) or
+        (inventory_hostname in item.value.rhost) or
+        (inventory_hostname in item.value.host)
+
+- name: add users
+  user:
+    name: "{{ item.key }}"
+    group: "{{ item.key }}"
+    uid: "{{ item.value.uid }}"
+    shell: "{{ item.value.shell | default('/bin/bash') }}"
+    home: "{{ item.value.home | default(omit) }}"
+  with_dict: "{{ users }}"
+  ignore_errors: True
+  when: ('any' in item.value.rhost ) or
+        ('any' in item.value.host ) or
+        (inventory_hostname in item.value.rhost) or
+        (inventory_hostname in item.value.host)
+
+- name: prepare .ssh path
+  file: 
+    path: "{{ item.value.home | default('/home/' + item.key) }}/.ssh"
+    state: "directory"
+    mode: "700"
+    owner: "{{ item.key }}"
+    group: "{{ item.key }}"
+  with_dict: "{{ users }}"
+  when: ('any' in item.value.rhost ) or
+        ('any' in item.value.host ) or
+        (inventory_hostname in item.value.rhost) or
+        (inventory_hostname in item.value.host)
+
+# NOTE: .ssh/authorized_keys editable by root only
+- name: add ssh public key
+  copy:
+    content: "{{ lookup('file', 'keys/{{ item.key }}.pub') }}"
+    dest: "{{ item.value.home | default('/home/' + item.key) }}/.ssh/authorized_keys"
+    mode: "644"
+    owner: "root"
+    group: "root"
+  with_dict: "{{ users }}"
+  ignore_errors: True
+  when: ('any' in item.value.rhost ) or
+        ('any' in item.value.host ) or
+        (inventory_hostname in item.value.rhost) or
+        (inventory_hostname in item.value.host)
+
+- name: link default profile config
+  file:
+    src: /etc/profile.d/tiki.sh
+    dest: "{{ item.value.home | default('/home/' + item.key) }}/.bashrc"
+    state: link
+    force: yes
+  with_dict: "{{ users }}"
+  ignore_errors: True
+  when: ('any' in item.value.rhost ) or
+        ('any' in item.value.host ) or
+        (inventory_hostname in item.value.rhost) or
+        (inventory_hostname in item.value.host)
+
+- name: user can become root
+  template:
+    src: sudoer.j2
+    dest: /etc/sudoers.d/uid-{{ item.value.uid }}
+  with_dict: "{{ users }}"
+  when: ('any' in item.value.rhost ) or
+        (inventory_hostname in item.value.rhost)

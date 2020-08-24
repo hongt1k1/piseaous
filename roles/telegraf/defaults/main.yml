@@ -1,0 +1,18 @@
+telegraf:
+    pkg:
+        url: 'https://dl.influxdata.com/telegraf/releases/telegraf-1.6.3_linux_amd64.tar.gz'
+        checksum: 'sha256:9cff541b1c9e0b643ba7abef4bccc879de934a7de5140ec6dc946f58f14aa90f'
+
+telegraf_input_plugins: []
+
+s_programs:
+  telegraf:
+    command:          '/tiki/telegraf/telegraf -config /tiki/telegraf/telegraf.conf -config-directory /tiki/telegraf/telegraf.d'
+    numprocs:         1
+    directory:        '/tiki/telegraf'
+    autostart:        true
+    autorestart:      true
+    user:             'root'
+    stdout_logfile:   '/tiki/log/telegraf.stdout.log'
+    stderr_logfile:   '/tiki/log/telegraf.stderr.log'
+    environment:      ''

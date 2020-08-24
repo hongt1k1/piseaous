@@ -1,0 +1,42 @@
+# {{ ansible_managed }}
+<source>
+    @type tail
+    tag soc.audit
+    read_from_head true
+    path /var/log/audit/audit.log #Allow td-agent read permission
+    pos_file /tiki/td-agent/auditd.log.pos
+    <parse>
+        @type none
+    </parse>
+</source>
+
+<filter soc.audit>
+    @type parse_audit_log #fluent-plugin-filter-parse-audit-log
+</filter>
+
+<filter soc.audit.**>
+    @type record_transformer
+    <record>
+        hostname {{ inventory_hostname }}
+        ip {{ ansible_default_ipv4.address }}
+    </record>
+</filter>
+
+<source>
+    @type tail
+    tag soc.file-integrity
+    read_from_head true
+    path /var/log/file_integrity.log
+    pos_file /tiki/td-agent/file-integrity.log.pos
+    <parse>
+        @type json
+    </parse>
+</source>
+
+<filter soc.file-integrity>
+    @type record_transformer
+    <record>
+        hostname {{ inventory_hostname }}
+        ip {{ ansible_default_ipv4.address }}
+    </record>
+</filter>

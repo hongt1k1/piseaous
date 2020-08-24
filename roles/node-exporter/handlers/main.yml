@@ -1,0 +1,5 @@
+- name: restart node-exporter
+  shell: /usr/bin/supervisorctl restart node-exporter
+
+- name: update supervisord
+  shell: /usr/bin/supervisorctl reread && /usr/bin/supervisorctl update

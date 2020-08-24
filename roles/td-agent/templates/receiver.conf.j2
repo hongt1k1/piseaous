@@ -1,0 +1,220 @@
+# {{ ansible_managed }}
+<system>
+ log_level debug
+</system>
+
+<source>
+  @type syslog
+  port 42185
+  tag  rsyslog
+</source>
+
+<source>
+  @type forward
+  port 24224
+</source>
+
+<source>
+  @type monitor_agent
+  bind 0.0.0.0
+  port 24220
+</source>
+
+<filter **>
+  @type record_modifier
+  char_encoding utf-8
+  #
+  # [warn]: failed to flush the buffer. error_class="JSON::GeneratorError"
+  # error="source sequence is illegal/malformed utf-8" plugin_id="object:3ff3e5fd61a0"
+  #
+  # In char_encoding from:to case, it replaces invalid character with safe character.
+  #
+  char_encoding utf-8:utf-8
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+# discard access log from nginx ingress controller
+# cause we are using nginx-ingress 0.10.2
+# TODO: upgrade to nginx-ingress 0.12.0 and use annotation instead
+<filter docker.containers>
+  @type grep
+  <and>
+    <exclude>
+      key container_name
+      pattern /^\/k8s_nginx-ingress-controller/
+    </exclude>
+    <exclude>
+      key stream
+      pattern /^stdout$/
+    </exclude>
+  </and>
+</filter>
+
+{# <filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_fulfillment-pull/
+  </exclude>
+</filter> #}
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_executor_sherlock-zoom/
+  </exclude>
+</filter>
+
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_review_review/
+  </exclude>
+</filter>
+
+{# <filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_browser-worker/
+  </exclude>
+</filter>
+ #}
+
+{# <filter docker.containers>
+  @type grep
+  <exclude>
+    key container_name
+    pattern /^\/k8s_personalization-worker/
+  </exclude>
+</filter> #}
+
+<filter docker.containers>
+  @type grep
+  <exclude>
+    key fluentd_event_source
+    pattern /^tmp-loadtest/
+  </exclude>
+</filter>
+
+
+#-----------------
+# nginx access log
+#--------------------------------
+
+<match nginx.access.**>
+  @type copy
+  {# <store ignore_error>
+    @type relabel
+    @label @TOBIGQUERY
+  </store> #}
+
+  <store ignore_error>
+    @type bigquery_load
+    auth_method json_key
+    json_key /tiki/td-agent/.ggsa-fluentd.json
+
+    <buffer time>
+      @type file
+      path /tiki/td-agent/buffer/nginx_access_bigquery.*.buffer
+      flush_at_shutdown true
+      flush_interval 900s
+      timekey 1d
+    </buffer>
+    <inject>
+      time_key time
+    </inject>
+
+    project tiki-dwh
+    dataset logs
+    auto_create_table true
+    ignore_unknown_values true
+    table nginx_access_%Y%m%d
+
+    schema [
+      {"name": "time", "type": "TIMESTAMP"},
+      {"name": "message", "type": "STRING"},
+      {"name": "fluentd_event_source", "type": "STRING"}
+    ]
+  </store>
+
+  <store ignore_error>
+    @type gelf
+    host {{ graylog_logging_endpoint }}
+    port 12201
+    protocol tcp
+    buffer_type file
+    buffer_path /tiki/td-agent/buffer/nginx_access_gelf.*.buffer
+    buffer_chunk_limit 10m
+    buffer_queue_limit 4000
+    flush_interval 5s
+    num_threads 2
+  </store>
+</match>
+
+
+<match nginx>
+  @type null
+</match>
+
+
+{% if (td_agent.sentry_enabled | default('0')) == '1' %}
+@include output_sentry_*.conf
+{% endif -%}
+
+<match soc.audit>
+    @type null
+</match>
+
+<match soc.file-integrity>
+    @type null
+</match>
+
+<match **>
+  @type gelf
+  host {{ graylog_logging_endpoint }}
+  port 12201
+  protocol tcp
+  buffer_type file
+  buffer_path /tiki/td-agent/buffer/catchall.*.buffer
+  buffer_chunk_limit 10m
+  buffer_queue_limit 4000
+  flush_interval 5s
+  num_threads 2
+</match>
+
+
+#--------
+# Forward to bigquery
+#----------------------
+{# <label @TOBIGQUERY>
+  <match **>
+    @type forward
+    <server>
+      host 10.8.4.38
+      port 24224
+    </server>
+    <security>
+      self_hostname {{ inventory_hostname }}
+      shared_key cooph4bah1eequ6shughie8woh0ahChi
+    </security>
+    <buffer>
+      @type               file
+      path                /tiki/td-agent/buffer/to-bigquery-forwarder.*.buffer
+      flush_at_shutdown   true
+      compress            gzip
+      flush_interval      1m
+    </buffer>
+    <secondary>
+      @type secondary_file
+      directory /tiki/td-agent/error
+      basename bigquery-forwarder.${chunk_id}
+      compress gzip
+    </secondary>
+  </match>
+</label> #}

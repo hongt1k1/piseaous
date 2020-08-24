@@ -1,0 +1,16 @@
+node_exporter:
+    pkg:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v0.17.0/node_exporter-0.17.0.linux-amd64.tar.gz"
+        checksum: "sha256:d2e00d805dbfdc67e7291ce2d2ff151f758dd7401dd993411ff3818d0e231489"
+
+s_programs:
+  node-exporter:
+    command:          '/tiki/node-exporter/bin/node_exporter --web.listen-address=":9100"  --collector.supervisord --collector.supervisord.url http://127.0.0.1:59001/RPC2'
+    numprocs:         1
+    directory:        '/tiki/node-exporter'
+    autostart:        true
+    autorestart:      true
+    user:             'tiki'
+    stdout_logfile:   '/tiki/log/node-exporter.stdout.log'
+    stderr_logfile:   '/tiki/log/node-exporter.stderr.log'
+    environment:      ''

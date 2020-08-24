@@ -1,0 +1,148 @@
+# {{ ansible_managed }}
+<system>
+ log_level debug
+</system>
+
+<source>
+  @type forward
+  @log_level info
+  port 24224
+  <security>
+    self_hostname {{ inventory_hostname }}
+    shared_key cooph4bah1eequ6shughie8woh0ahChi
+  </security>
+</source>
+
+# expose metrics in prometheus format
+<source>
+  @type prometheus
+  bind 0.0.0.0
+  port 24231
+  metrics_path /metrics
+</source>
+<source>
+  @type prometheus_output_monitor
+  interval 10
+  <labels>
+    hostname ${hostname}
+  </labels>
+</source>
+
+<filter **>
+  @type record_modifier
+  char_encoding utf-8
+  <record>
+    fluentd_event_source "${record['fluentd_event_source'] ? record['fluentd_event_source'] : Socket.gethostname}"
+  </record>
+</filter>
+
+# ---
+#
+# ---------------
+
+#
+# load job limitation:
+#   load jobs per table per day — 1,500 (including failures)
+#   load jobs per project per day — 100,000 (including failures)
+# https://cloud.google.com/bigquery/quotas#load_jobs
+#
+
+{% if (td_agent.bigquery.enabled | default('0')) == '1' %}
+<match k8s.ingress.nginx>
+  @type bigquery_load
+  auth_method json_key
+  json_key /tiki/td-agent/.ggsa-fluentd.json
+
+  <buffer time>
+    @type               file
+    path                /tiki/td-agent/buffer/k8s-nginx-access-bigquery.*.buffer
+    flush_at_shutdown   true
+    timekey             1d
+    flush_interval      10m
+  </buffer>
+
+  <inject>
+    time_key time
+  </inject>
+
+  project tiki-dwh
+  dataset logs
+  auto_create_table true
+  ignore_unknown_values true
+  table nginx_access_%Y%m%d
+
+  schema [
+    {"name": "time", "type": "TIMESTAMP"},
+    {"name": "message", "type": "STRING"},
+    {"name": "fluentd_event_source", "type": "STRING"}
+  ]
+</match>
+
+
+<match nginx.access.**>
+  @type bigquery_load
+  auth_method json_key
+  json_key /tiki/td-agent/.ggsa-fluentd.json
+  location US
+
+  <buffer time>
+    @type               file
+    path                /tiki/td-agent/buffer/nginx-access-bigquery.*.buffer
+    flush_at_shutdown   true
+    timekey             1d
+    flush_interval      10m
+  </buffer>
+
+  <inject>
+    time_key time
+  </inject>
+
+  project tiki-dwh
+  dataset logs
+  auto_create_table true
+  ignore_unknown_values true
+  table nginx_access_%Y%m%d
+
+  schema [
+    {"name": "time", "type": "TIMESTAMP"},
+    {"name": "message", "type": "STRING"},
+    {"name": "fluentd_event_source", "type": "STRING"}
+  ]
+</match>
+
+
+<match talaria.**>
+  @type bigquery_load
+  auth_method json_key
+  json_key /tiki/td-agent/.ggsa-fluentd.json
+
+  <buffer time>
+    @type               file
+    path                /tiki/td-agent/buffer/talaria-bigquery.*.buffer
+    flush_at_shutdown   true
+    timekey             1d
+    flush_interval      10m
+  </buffer>
+
+  <inject>
+    time_key time
+  </inject>
+
+  project tiki-dwh
+  dataset logs
+  auto_create_table true
+  ignore_unknown_values true
+  table talaria_%Y%m%d
+
+  schema [
+    {"name": "time", "type": "TIMESTAMP"},
+    {"name": "msg", "type": "STRING"},
+    {"name": "application", "type": "STRING"},
+    {"name": "environment", "type": "STRING"},
+    {"name": "path", "type": "STRING"},
+    {"name": "level", "type": "STRING"},
+    {"name": "fluentd_event_source", "type": "STRING"}
+  ]
+</match>
+
+{% endif -%}

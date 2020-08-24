@@ -1,0 +1,28 @@
+<match rancher.auditlog>
+  @type kafka2
+
+  # list of seed brokers
+  brokers dev-kafka-1.svr.tiki.services:9092,dev-kafka-2.svr.tiki.services:9092,dev-kafka-3.svr.tiki.services:9092
+  use_event_time true
+
+  # buffer settings
+  <buffer topic>
+    @type file
+    path /tiki/td-agent/buffer/rancher_audit.buffer
+    flush_interval 3s
+  </buffer>
+
+  # data type settings
+  <format>
+    @type json
+  </format>
+
+  # topic settings
+  # https://github.com/fluent/fluent-plugin-kafka/issues/289
+  # I don't know whyyy
+  default_topic rancher.auditlogs
+
+  # producer settings
+  required_acks -1
+  compression_codec gzip
+</match>

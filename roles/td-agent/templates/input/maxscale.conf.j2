@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+<source>
+  @type tail
+  path /var/log/maxscale/sqlquery.log.*
+  pos_file /tiki/td-agent/maxscale.log.pos
+  tag maxscale.sqlquery
+  format csv_with_header
+  delimiter '|'
+  keys service, date, user, reply_time, query
+  time_key date
+</source>

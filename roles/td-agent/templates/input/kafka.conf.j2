@@ -1,0 +1,15 @@
+<source>
+  @type tail
+  format none
+  path /tiki/log/kafka.stdout.log
+  pos_file /tiki/td-agent/kafka.stdout.log.pos
+  tag kafka.stdout
+</source>
+
+<source>
+  @type tail
+  format none
+  path /tiki/log/kafka.stderr.log
+  pos_file /tiki/td-agent/kafka.stderr.log.pos
+  tag kafka.stderr
+</source>

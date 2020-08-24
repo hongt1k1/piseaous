@@ -1,0 +1,35 @@
+
+- name: install supervisor
+  yum: name=supervisor state=present
+
+- name: apply supervisord.conf
+  template:
+    src: supervisord.conf.j2
+    dest: /etc/supervisord.conf
+    mode: 0644
+  # notice: dont trigger auto-restart of supervisord when config file
+  # is changed because such an event may lead to unexpected critical downtime
+
+- name: create log folder
+  file: path=/tiki/log state=directory owner=tiki group=tiki mode=0777
+
+- name: create supervisord folder
+  file: path=/etc/supervisord.d state=directory
+
+- name: change systemd resource limits for supervisord
+  block:
+    - name: create /usr/lib/systemd/system/supervisord.service.d folder
+      file: path=/usr/lib/systemd/system/supervisord.service.d state=directory
+    - name: copy custom.conf to /usr/lib/systemd/system/supervisord.service.d
+      copy:
+        src: custom.conf
+        dest: /usr/lib/systemd/system/supervisord.service.d/custom.conf
+        owner: root
+        group: root
+        mode: 0644
+
+- name: ensure supervisord is running
+  systemd: daemon_reload=yes name=supervisord state=started enabled=yes
+
+- name: shortlink for supervisorctl
+  file: src=/usr/bin/supervisorctl dest=/usr/bin/s state=link force=yes

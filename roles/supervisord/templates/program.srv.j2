@@ -1,0 +1,30 @@
+; {{ ansible_managed }}
+; /etc/supervisor.d/{{ item.key }}.srv
+
+[program:{{ item.key }}]
+command={{ item.value.command }}
+process_name=%(program_name)s
+numprocs={{ item.value.numprocs }}
+directory={{ item.value.directory }}
+umask=022
+priority=999
+autostart={{ item.value.autostart }}
+autorestart={{ item.value.autorestart }}
+startsecs=1
+startretries=3
+exitcodes=0,2
+stopsignal=TERM
+stopwaitsecs=30
+user={{ item.value.user }}
+redirect_stderr=false
+stdout_logfile={{ item.value.stdout_logfile }}
+stderr_logfile={{ item.value.stderr_logfile }}
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=5
+stdout_capture_maxbytes=0
+stdout_events_enabled=false
+stderr_logfile_maxbytes=10MB
+stderr_logfile_backups=5
+stderr_capture_maxbytes=0
+stderr_events_enabled=false
+environment={{ item.value.environment }}

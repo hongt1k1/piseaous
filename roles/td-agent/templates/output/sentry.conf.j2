@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+<match sentry.{{ item.key }}>
+  @type sentry
+  endpoint_url       {{ item.value.dsn }}
+  hostname_command   hostname -s
+  # rewrite shown tag name for Sentry dashboard
+  remove_tag_prefix  sentry.
+</match>
