@@ -4,3 +4,4 @@
     roles:
       #- { role: common, tags: common }
       - { role: users, tags: users }
+      #- { role: supervisord, tags: supervisord }

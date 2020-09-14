@@ -1,10 +1,10 @@
 - name: add profile.d config
   template:
-    src: profile.d/tiki.sh
-    dest: /etc/profile.d/tiki.sh
+    src: profile.d/corp.sh
+    dest: /etc/profile.d/corp.sh
 
 - name: bash profile for root
-  file: src=/etc/profile.d/tiki.sh dest=/root/.bashrc state=link force=yes
+  file: src=/etc/profile.d/corp.sh dest=/root/.bashrc state=link force=yes
 
 - name: add groups
   group:
@@ -61,7 +61,7 @@
 
 - name: link default profile config
   file:
-    src: /etc/profile.d/tiki.sh
+    src: /etc/profile.d/corp.sh
     dest: "{{ item.value.home | default('/home/' + item.key) }}/.bashrc"
     state: link
     force: yes

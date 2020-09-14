@@ -3,7 +3,7 @@ uat-2 ansible_host=10.20.43.39
 uat-3 ansible_host=10.20.43.40 
 
 web-1 ansible_host=35.224.92.225
-web-2 ansible_host=34.68.191.15
+web-2 ansible_host=34.68.143.108
 
 [dbservers]
 uat-1

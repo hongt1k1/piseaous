@@ -1,0 +1,17 @@
+grafana:
+    pkg:
+        url: 'https://dl.grafana.com/oss/release/grafana-6.4.3.linux-amd64.tar.gz'
+        checksum: 'sha256:023712b0be774ad8f84ff1355fd8c8b15d237870182c141078a363040ba8293f'
+    url: 'grafana.tikihub.com' 
+
+s_programs:
+  grafana:
+    command:          '/tiki/grafana/bin/grafana-server --config=/tiki/grafana/grafana.ini --pidfile=/tiki/grafana/grafana-server.pid cfg:default.paths.data=/tiki/grafana/data cfg:default.paths.plugins=/tiki/grafana/data/plugins'
+    numprocs:         1
+    directory:        '/tiki/grafana'
+    autostart:        true
+    autorestart:      true
+    user:             '{{ corp }}'
+    stdout_logfile:   '/tiki/log/grafana.stdout.log'
+    stderr_logfile:   '/tiki/log/grafana.stderr.log'
+    environment:      ''

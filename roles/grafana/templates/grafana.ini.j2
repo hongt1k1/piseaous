@@ -1,0 +1,46 @@
+; {{ ansible_managed }}
+
+data = /corp/grafana/data
+logs = /corp/log
+plugins = /corp/grafana/data/plugins
+
+[server]
+protocol = http
+domain = {{ grafana.url }}
+enable_gzip = true
+root_url = %(protocol)ss://%(domain)s/
+
+[database]
+type = sqlite3
+
+[security]
+admin_user = hong.dam@tiki.vn
+login_remember_days = 5
+cookie_samesite = none
+allow_embedding = true
+
+[analytics]
+reporting_enabled = false
+check_for_updates = false
+
+[users]
+allow_sign_up = false
+auto_assign_org = true
+auto_assign_org_role = Viewer
+allow_org_create = false
+
+[auth.anonymous]
+enabled = false
+
+[auth.google]
+enabled = true
+client_id = 212109297440-rbb54go87pisfgnbqsja1oq9ldaugl52.apps.googleusercontent.com
+client_secret = 8YWkXFpl8aJst7pSK5_XY2qb
+scopes = https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email
+auth_url = https://accounts.google.com/o/oauth2/auth
+token_url = https://accounts.google.com/o/oauth2/token
+allowed_domains = tiki.vn
+allow_sign_up = true
+
+[log]
+mode = console

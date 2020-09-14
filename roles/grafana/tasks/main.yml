@@ -1,0 +1,51 @@
+- name: check if grafana already installed
+  stat: path=/tiki/grafana/bin/grafana-server
+  register: grafana_bin
+
+- name: install grafana
+  block:
+    - name: create base grafana path
+      file: path={{ item }} state=directory owner={{ corp }} group={{ corp }}
+      with_items:
+        - '/{{ corp }}/grafana'
+        - '/{{ corp }}/grafana/data/plugins'
+
+    - name: download grafana release
+      get_url:
+        url: '{{ grafana.pkg.url }}'
+        dest: /usr/local/src/
+        checksum: '{{ grafana.pkg.checksum }}'
+      register: grafana_src
+
+    - name: extract grafana.tar
+      unarchive:
+        src: '{{ grafana_src.dest }}'
+        remote_src: yes
+        dest: /{{ corp }}/grafana
+        extra_opts: ['--strip', '1']
+
+    # bin/grafana-cli --pluginsDir /tiki/grafana/data/plugins plugins install grafana-piechart-panel
+    # bin/grafana-cli --pluginsDir /tiki/grafana/data/plugins plugins install vonage-status-panel
+    # bin/grafana-cli --pluginsDir /tiki/grafana/data/plugins plugins install jdbranham-diagram-panel
+    # bin/grafana-cli --pluginsDir /tiki/grafana/data/plugins plugins install abhisant-druid-datasource
+    # bin/grafana-cli --pluginsDir /tiki/grafana/data/plugins plugins install alexanderzobnin-zabbix-app
+
+    # https://github.com/wevanscfi/grafana-newrelic-apm-datasource
+
+  when: grafana_bin.stat.exists == False
+
+- name: apply grafana configs
+  template: >
+    src={{ item }}.j2 dest=/{{ corp }}/grafana/{{ item }}
+    mode=0644 owner={{ corp }} group={{ corp }}
+  with_items:
+    - grafana.ini
+  notify: restart grafana
+
+- name: set ownership
+  file: path=/{{ corp }}/grafana state=directory owner={{ corp }} group={{ corp }} recurse=yes
+
+- name: add supervisord program config
+  import_role:
+    name: supervisord
+    tasks_from: programs
