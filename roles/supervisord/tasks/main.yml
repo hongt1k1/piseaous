@@ -11,7 +11,7 @@
   # is changed because such an event may lead to unexpected critical downtime
 
 - name: create log folder
-  file: path=/tiki/log state=directory owner=tiki group=tiki mode=0777
+  file: path=/corp/log state=directory owner=corp group=corp mode=0777
 
 - name: create supervisord folder
   file: path=/etc/supervisord.d state=directory
