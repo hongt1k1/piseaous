@@ -1,6 +1,6 @@
 
 - name: check if node-exporter already installed
-  stat: path=/tiki/node-exporter/bin/node_exporter
+  stat: path=/corp/node-exporter/bin/node_exporter
   register: node_exporter_bin
 
 - name: install
@@ -9,7 +9,7 @@
     - name: prepare node-exporter path
       file: path={{ item }} state=directory
       with_items:
-        - /tiki/node-exporter/bin
+        - /corp/node-exporter/bin
 
     - name: download node-exporter release
       get_url:
@@ -22,7 +22,7 @@
       unarchive:
         src: '{{ node_exporter_src.dest }}'
         remote_src: yes
-        dest: /tiki/node-exporter/bin
+        dest: /corp/node-exporter/bin
         extra_opts: ['--strip', '1']
         exclude: ['LICENSE', 'NOTICE']
 

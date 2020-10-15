@@ -1,10 +1,10 @@
 ---
   - name: Provision common settings for all server
-    hosts: web-1
+    hosts: uat-1
     roles:
       - { role: common, tags: common }
       - { role: users, tags: users }
       - { role: supervisord, tags: supervisord }
       - { role: node-exporter, tags: node-exporter }
-        # - { role: telegraf, tags: telegraf }
-        #- { role: td-agent, tags: td-agent }
+      - { role: telegraf, tags: telegraf }
+      - { role: td-agent, tags: td-agent }

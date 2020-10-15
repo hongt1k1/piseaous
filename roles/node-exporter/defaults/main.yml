@@ -5,12 +5,12 @@ node_exporter:
 
 s_programs:
   node-exporter:
-    command:          '/tiki/node-exporter/bin/node_exporter --web.listen-address=":9100"  --collector.supervisord --collector.supervisord.url http://127.0.0.1:59001/RPC2'
+    command:          '/corp/node-exporter/bin/node_exporter --web.listen-address=":9100"  --collector.supervisord --collector.supervisord.url http://127.0.0.1:59001/RPC2'
     numprocs:         1
-    directory:        '/tiki/node-exporter'
+    directory:        '/corp/node-exporter'
     autostart:        true
     autorestart:      true
-    user:             'tiki'
-    stdout_logfile:   '/tiki/log/node-exporter.stdout.log'
-    stderr_logfile:   '/tiki/log/node-exporter.stderr.log'
+    user:             'corp'
+    stdout_logfile:   '/corp/log/node-exporter.stdout.log'
+    stderr_logfile:   '/corp/log/node-exporter.stderr.log'
     environment:      ''
