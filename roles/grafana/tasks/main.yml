@@ -1,5 +1,5 @@
 - name: check if grafana already installed
-  stat: path=/tiki/grafana/bin/grafana-server
+  stat: path=/{{ corp }}/grafana/bin/grafana-server
   register: grafana_bin
 
 - name: install grafana
